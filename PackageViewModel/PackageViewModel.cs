@@ -60,7 +60,7 @@ namespace PackageExplorerViewModel
         private ICommand? _removeSignatureCommand;
         private FileSystemWatcher? _watcher;
 
-        private List<object?> _selectedItems = new List<object?>();        
+        private readonly List<object?> _selectedItems = new List<object?>();        
 
         #endregion
 
@@ -242,16 +242,6 @@ namespace PackageExplorerViewModel
         public List<object?> SelectedItems
         {
             get { return _selectedItems; }
-            set
-            {
-                if (!_selectedItems.Contains(value))
-                {
-                    _selectedItems.Add(value);
-                    OnPropertyChanged("SelectedItems");
-                    ((ViewContentCommand)ViewContentCommand).RaiseCanExecuteChanged();
-                    CommandManager.InvalidateRequerySuggested();
-                }
-            }
         }
 
         public string PackagePath
@@ -622,10 +612,7 @@ namespace PackageExplorerViewModel
         {
             DiagnosticsClient.TrackEvent("PackageViewModel_DeleteContentExecute");
 
-            // Null objects are put sometimes into List, so to not count them
-            //var moreValuesToDelete = SelectedItems.Select(p => ).Count();
-
-            if (SelectedItems.Count() <= 1)
+            if (SelectedItems.Count <= 1)
             {
                 if ((parameter ?? SelectedItem) is PackagePart file)
                 {
@@ -870,14 +857,13 @@ namespace PackageExplorerViewModel
 
             try
             {
-                using var mruSourceManager = new MruPackageSourceManager(
-                    new PublishSourceSettings(SettingsManager));
-                var publishPackageViewModel = new PublishPackageViewModel(
-mruSourceManager,
-SettingsManager,
-UIServices,
-_credentialPublishProvider,
-this);
+                using var mruSourceManager = new MruPackageSourceManager(new PublishSourceSettings(SettingsManager));
+                using var publishPackageViewModel = new PublishPackageViewModel(
+                                                            mruSourceManager,
+                                                            SettingsManager,
+                                                            UIServices,
+                                                            _credentialPublishProvider,
+                                                            this);
                 UIServices.OpenPublishDialog(publishPackageViewModel);
             }
             catch (Exception e)

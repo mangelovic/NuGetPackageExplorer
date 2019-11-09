@@ -13,19 +13,34 @@ namespace PackageExplorer.Controls
     {
         public MultiSelectTreeView()
         {
-            GotFocus += OnTreeViewItemGotFocus;
-            PreviewMouseLeftButtonDown += OnTreeViewItemPreviewMouseDown;
-            PreviewMouseLeftButtonUp += OnTreeViewItemPreviewMouseUp;
+            Loaded += (s, a) =>
+            {
+                GotFocus += OnTreeViewItemGotFocus;
+                PreviewMouseLeftButtonDown += OnTreeViewItemPreviewMouseDown;
+                PreviewMouseLeftButtonUp += OnTreeViewItemPreviewMouseUp;
+            };
+
+            Unloaded += (s, a) =>
+            {
+                GotFocus -= OnTreeViewItemGotFocus;
+                PreviewMouseLeftButtonDown -= OnTreeViewItemPreviewMouseDown;
+                PreviewMouseLeftButtonUp -= OnTreeViewItemPreviewMouseUp;
+            };
         }
 
-        private static TreeViewItem _selectTreeViewItemOnMouseUp;
-
+        private static TreeViewItem? _selectTreeViewItemOnMouseUp;
+        private static DateTime _lastTime = DateTime.Now;
 
         public static readonly DependencyProperty IsItemSelectedProperty = DependencyProperty.RegisterAttached("IsItemSelected", typeof(Boolean), typeof(MultiSelectTreeView), new PropertyMetadata(false, OnIsItemSelectedPropertyChanged));
 
-        public static bool GetIsItemSelected(TreeViewItem element)
+        public static bool GetIsItemSelected(TreeViewItem? element)
         {
-            return (bool)element.GetValue(IsItemSelectedProperty);
+            if (element != null)
+            {
+                return (bool)element.GetValue(IsItemSelectedProperty);
+            }
+
+            return false;
         }
 
         public static void SetIsItemSelected(TreeViewItem element, Boolean value)
@@ -60,12 +75,26 @@ namespace PackageExplorer.Controls
 
         public static IList GetSelectedItems(TreeView element)
         {
-            return (IList)element.GetValue(SelectedItemsProperty);
+            if (element != null)
+            {
+                return (IList)element.GetValue(SelectedItemsProperty);
+            }
+            else
+            {
+                throw new ArgumentException("TreeView element is null. Cannot set value for null element.");
+            }
         }
 
         public static void SetSelectedItems(TreeView element, IList value)
         {
-            element.SetValue(SelectedItemsProperty, value);
+            if (element != null)
+            {
+                element.SetValue(SelectedItemsProperty, value);
+            }
+            else
+            {
+                throw new ArgumentException("TreeView element is null. Cannot set value for null element.");
+            }
         }
 
         private static readonly DependencyProperty StartItemProperty = DependencyProperty.RegisterAttached("StartItem", typeof(TreeViewItem), typeof(MultiSelectTreeView));
@@ -76,7 +105,7 @@ namespace PackageExplorer.Controls
             return (TreeViewItem)element.GetValue(StartItemProperty);
         }
 
-        private static void SetStartItem(TreeView element, TreeViewItem value)
+        private static void SetStartItem(TreeView element, TreeViewItem? value)
         {
             element.SetValue(StartItemProperty, value);
         }
@@ -95,10 +124,19 @@ namespace PackageExplorer.Controls
                 return;
             }
 
+            var currentTime = DateTime.Now;
+
+            // This is to prevent case, when holding CONTROL, GotFocus triggers twice (not all the time), so selected item do not get unselected right after
+            if ((currentTime - _lastTime).Milliseconds < 100)
+            {
+                return;
+            }
+
             SelectItems(treeViewItem, sender as TreeView);
+            _lastTime = DateTime.Now;
         }
 
-        private static void SelectItems(TreeViewItem treeViewItem, TreeView treeView)
+        private static void SelectItems(TreeViewItem? treeViewItem, TreeView? treeView)
         {
             if (treeViewItem != null && treeView != null)
             {
@@ -139,7 +177,7 @@ namespace PackageExplorer.Controls
             }
         }
 
-        private static TreeViewItem FindTreeViewItem(DependencyObject dependencyObject)
+        private static TreeViewItem? FindTreeViewItem(DependencyObject? dependencyObject)
         {
             if (!(dependencyObject is Visual || dependencyObject is Visual3D))
                 return null;
@@ -161,7 +199,7 @@ namespace PackageExplorer.Controls
             SetStartItem(treeView, treeViewItem);
         }
 
-        private static void DeSelectAllItems(TreeView treeView, TreeViewItem treeViewItem)
+        private static void DeSelectAllItems(TreeView? treeView, TreeViewItem? treeViewItem)
         {
             if (treeView != null)
             {
@@ -175,7 +213,7 @@ namespace PackageExplorer.Controls
                     }
                 }
             }
-            else
+            else if (treeViewItem != null)
             {
                 for (int i = 0; i < treeViewItem.Items.Count; i++)
                 {
@@ -189,7 +227,7 @@ namespace PackageExplorer.Controls
             }
         }
 
-        private static TreeView FindTreeView(DependencyObject dependencyObject)
+        private static TreeView? FindTreeView(DependencyObject? dependencyObject)
         {
             if (dependencyObject == null)
             {
@@ -260,7 +298,7 @@ namespace PackageExplorer.Controls
             }
         }
 
-        private static void GetAllItems(TreeView treeView, TreeViewItem treeViewItem, ICollection<TreeViewItem> allItems)
+        private static void GetAllItems(TreeView? treeView, TreeViewItem? treeViewItem, ICollection<TreeViewItem> allItems)
         {
             if (treeView != null)
             {
@@ -274,7 +312,7 @@ namespace PackageExplorer.Controls
                     }
                 }
             }
-            else
+            else if (treeViewItem != null)
             {
                 for (int i = 0; i < treeViewItem.Items.Count; i++)
                 {
